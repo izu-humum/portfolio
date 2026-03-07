@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Admin — Experience & Projects</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div class="admin-wrap">
+    <header class="admin-header">
+      <h1>Portfolio Admin</h1>
+      <p>Manage Experience and Projects. Changes are saved locally and appear on <a href="index.html">your portfolio</a>.</p>
+    </header>
+
+    <main class="admin-main">
+      <!-- CV -->
+      <section class="admin-section">
+        <h2>CV / Resume</h2>
+        <p class="admin-hint">Upload a PDF. It will be available as "Download CV" in the portfolio menu. Max ~5MB recommended (browser storage limit).</p>
+        <form id="cv-form" class="admin-form">
+          <div class="form-row">
+            <label for="cv-file">PDF file</label>
+            <input type="file" id="cv-file" accept=".pdf" />
+          </div>
+          <div class="form-row">
+            <label for="cv-filename">Download filename (optional)</label>
+            <input type="text" id="cv-filename" placeholder="e.g. Humam_Ahmed_Izu_CV.pdf" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Upload CV</button>
+            <button type="button" id="cv-remove" class="btn btn-ghost">Remove CV</button>
+          </div>
+        </form>
+        <p id="cv-status" class="cv-status"></p>
+      </section>
+
+      <!-- Experience -->
+      <section class="admin-section">
+        <h2>Experience</h2>
+        <form id="experience-form" class="admin-form">
+          <input type="hidden" id="experience-id" value="" />
+          <div class="form-row">
+            <label for="exp-company">Company name</label>
+            <input type="text" id="exp-company" required placeholder="e.g. Acme Inc." />
+          </div>
+          <div class="form-row">
+            <label for="exp-url">Company website URL</label>
+            <input type="text" id="exp-url" inputmode="url" placeholder="https://example.com" autocomplete="url" />
+          </div>
+          <div class="form-row form-row-inline date-fields">
+            <div class="form-group date-field">
+              <label for="exp-start-date">Start date</label>
+              <div class="date-input-wrap">
+                <input type="date" id="exp-start-date" required class="date-input" />
+              </div>
+            </div>
+            <div class="form-group date-field">
+              <label for="exp-end-date">End date</label>
+              <div class="date-input-wrap">
+                <input type="date" id="exp-end-date" class="date-input" />
+              </div>
+            </div>
+          </div>
+          <div class="form-row form-row-checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" id="exp-present" /> Present (current role)
+            </label>
+          </div>
+          <div class="form-row">
+            <label for="exp-role">Role</label>
+            <input type="text" id="exp-role" required placeholder="e.g. QA Engineer 2" />
+          </div>
+          <div class="form-row">
+            <label>Description</label>
+            <div id="exp-desc-editor" class="quill-editor-wrap"></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Experience</button>
+            <button type="button" id="experience-cancel" class="btn btn-ghost" style="display: none;">Cancel</button>
+          </div>
+        </form>
+        <ul id="experience-list" class="admin-list"></ul>
+      </section>
+
+      <!-- Projects -->
+      <section class="admin-section">
+        <h2>Projects</h2>
+        <form id="project-form" class="admin-form">
+          <input type="hidden" id="project-id" value="" />
+          <div class="form-row">
+            <label for="proj-title">Project title</label>
+            <input type="text" id="proj-title" required placeholder="e.g. E2E Test Framework" />
+          </div>
+          <div class="form-row">
+            <span class="form-label">Project type</span>
+            <div class="checkbox-group" role="group" aria-label="Project type">
+              <label class="checkbox-label"><input type="checkbox" name="proj-type" value="Manual" /> Manual</label>
+              <label class="checkbox-label"><input type="checkbox" name="proj-type" value="API Automation" /> API Automation</label>
+              <label class="checkbox-label"><input type="checkbox" name="proj-type" value="UI Automation" /> UI Automation</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Description</label>
+            <div id="proj-desc-editor" class="quill-editor-wrap"></div>
+          </div>
+          <div class="form-row">
+            <label for="proj-skill">Skills</label>
+            <input type="text" id="proj-skill" placeholder="e.g. Selenium, Python, API testing" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Project</button>
+            <button type="button" id="project-cancel" class="btn btn-ghost" style="display: none;">Cancel</button>
+          </div>
+        </form>
+        <ul id="projects-list" class="admin-list"></ul>
+      </section>
+
+      <!-- Contact -->
+      <section class="admin-section">
+        <h2>Contact</h2>
+        <p class="admin-hint">Update the contact section and links shown on your portfolio (Say Hello + footer).</p>
+        <form id="contact-form" class="admin-form">
+          <div class="form-row">
+            <label for="contact-text-input">Short message (below “SAY HELLO”)</label>
+            <input type="text" id="contact-text-input" placeholder="e.g. Open to new opportunities and conversations about quality engineering." />
+          </div>
+          <div class="form-row">
+            <label for="contact-email-input">Email</label>
+            <input type="email" id="contact-email-input" placeholder="your@email.com" />
+          </div>
+          <div class="form-row">
+            <label for="contact-linkedin-input">LinkedIn URL</label>
+            <input type="url" id="contact-linkedin-input" placeholder="https://linkedin.com/in/yourprofile" />
+          </div>
+          <div class="form-row">
+            <label for="contact-github-input">GitHub URL</label>
+            <input type="url" id="contact-github-input" placeholder="https://github.com/yourprofile" />
+          </div>
+          <div class="form-row">
+            <label for="contact-discord-input">Discord URL</label>
+            <input type="url" id="contact-discord-input" placeholder="https://discord.com/yourprofile or Discord invite" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Contact</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <footer class="admin-footer">
+      <a href="index.html" class="btn btn-ghost">← Back to portfolio</a>
+    </footer>
+  </div>
+
+  <!-- Custom date picker (liquid glass + accent) -->
+  <div id="date-picker-dropdown" class="date-picker-dropdown" aria-hidden="true">
+    <div class="date-picker-glass">
+      <div class="date-picker-header">
+        <button type="button" class="date-picker-nav" id="date-picker-prev" aria-label="Previous month">‹</button>
+        <span class="date-picker-month-year" id="date-picker-month-year">March 2026</span>
+        <button type="button" class="date-picker-nav" id="date-picker-next" aria-label="Next month">›</button>
+      </div>
+      <div class="date-picker-weekdays">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      </div>
+      <div class="date-picker-days" id="date-picker-days"></div>
+      <div class="date-picker-footer">
+        <button type="button" class="date-picker-btn" id="date-picker-clear">Clear</button>
+        <button type="button" class="date-picker-btn date-picker-btn-accent" id="date-picker-today">Today</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

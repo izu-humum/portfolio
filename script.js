@@ -1,0 +1,468 @@
+(function () {
+  const cursorDot = document.getElementById("cursor-dot");
+  const cursorRing = document.getElementById("cursor-ring");
+  const menuTrigger = document.getElementById("menu-trigger");
+  const menuOverlay = document.getElementById("menu-overlay");
+  const menuClose = document.getElementById("menu-close");
+  const clockEl = document.getElementById("clock");
+  const coordViewport = document.getElementById("coord-viewport");
+  const heroCoordViewport = document.getElementById("hero-coord-viewport");
+  const yearEl = document.getElementById("year");
+  const heroTyped = document.getElementById("hero-typed");
+  const heroCursor = document.getElementById("hero-cursor");
+
+  let mouseX = 0, mouseY = 0;
+  let dotX = 0, dotY = 0;
+  let ringX = 0, ringY = 0;
+  let visible = false;
+  let spinTimeout = null;
+  const HOVER_SELECTOR = "a, button, [role='button'], .btn-ava, .company-card, .project-card, .contact-link";
+
+  const lerp = (start, end, factor) => start + (end - start) * factor;
+
+  function updateCursor(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    if (!visible) {
+      visible = true;
+      if (cursorDot) cursorDot.style.opacity = "1";
+      if (cursorRing) cursorRing.style.opacity = "1";
+    }
+  }
+
+  function leaveCursor() {
+    visible = false;
+    if (cursorDot) cursorDot.style.opacity = "0";
+    if (cursorRing) cursorRing.style.opacity = "0";
+  }
+
+  function parseRgbLuminance(cssColor) {
+    if (!cssColor || cssColor === "rgba(0, 0, 0, 0)" || cssColor === "transparent") return null;
+    var m = cssColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return null;
+    var r = parseInt(m[1], 10), g = parseInt(m[2], 10), b = parseInt(m[3], 10);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  }
+
+  function getBackgroundLuminance(el) {
+    var node = el;
+    while (node && node !== document.body) {
+      var bg = node && window.getComputedStyle(node).backgroundColor;
+      var L = parseRgbLuminance(bg);
+      if (L !== null) return L;
+      node = node.parentElement;
+    }
+    var bodyBg = document.body && window.getComputedStyle(document.body).backgroundColor;
+    var L = parseRgbLuminance(bodyBg);
+    return L !== null ? L : 1;
+  }
+
+  function isDarkTextElement(el) {
+    if (!el || !el.tagName) return false;
+    var textTags = ["A", "SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "LI", "TD", "TH", "LABEL", "BUTTON"];
+    if (textTags.indexOf(el.tagName) === -1) return false;
+    var color = window.getComputedStyle(el).color;
+    var lum = parseRgbLuminance(color);
+    return lum !== null && lum < 0.5;
+  }
+
+  function updateCursorBg() {
+    var el = document.elementFromPoint(mouseX, mouseY);
+    var onRed = el && el.closest("[data-cursor-bg=\"red\"]");
+    var onBlack = el && el.closest("[data-cursor-bg=\"black\"]");
+    var onDarkBg = false;
+    var onDarkText = false;
+    if (!onRed && !onBlack) {
+      var bgLum = getBackgroundLuminance(el);
+      if (bgLum !== null && bgLum < 0.5) {
+        onDarkBg = true;
+      } else {
+        onDarkText = isDarkTextElement(el);
+      }
+    }
+    if (cursorRing) {
+      cursorRing.classList.toggle("on-red", !!onRed);
+      cursorRing.classList.toggle("on-black", !!onBlack);
+      cursorRing.classList.toggle("on-dark-bg", !!onDarkBg);
+      cursorRing.classList.toggle("on-dark-text", !!onDarkText);
+    }
+  }
+
+  function animate() {
+    const ringFactor = 0.18;
+    const dotFactor = 0.12;
+    ringX = lerp(ringX, mouseX, ringFactor);
+    ringY = lerp(ringY, mouseY, ringFactor);
+    dotX = lerp(dotX, mouseX, dotFactor);
+    dotY = lerp(dotY, mouseY, dotFactor);
+
+    if (cursorRing) {
+      cursorRing.style.left = ringX + "px";
+      cursorRing.style.top = ringY + "px";
+    }
+    if (cursorDot) {
+      cursorDot.style.left = dotX + "px";
+      cursorDot.style.top = dotY + "px";
+    }
+    updateCursorBg();
+    if (heroCoordViewport) heroCoordViewport.textContent = "X " + Math.round(mouseX) + "  Y " + Math.round(mouseY);
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+
+  document.addEventListener("mousemove", updateCursor);
+  document.addEventListener("mouseleave", leaveCursor);
+
+  document.querySelectorAll(HOVER_SELECTOR).forEach(function (el) {
+    el.addEventListener("mouseenter", function () {
+      if (cursorRing) {
+        cursorRing.classList.add("hover", "spin");
+        if (spinTimeout) clearTimeout(spinTimeout);
+        spinTimeout = setTimeout(function () {
+          if (cursorRing) cursorRing.classList.remove("spin");
+          spinTimeout = null;
+        }, 1000);
+      }
+    });
+    el.addEventListener("mouseleave", function () {
+      if (cursorRing) {
+        cursorRing.classList.remove("hover", "spin");
+      }
+      if (spinTimeout) {
+        clearTimeout(spinTimeout);
+        spinTimeout = null;
+      }
+    });
+  });
+
+  if (menuTrigger && menuOverlay) {
+    menuTrigger.addEventListener("click", () => {
+      menuOverlay.classList.add("open");
+      document.body.style.overflow = "hidden";
+    });
+  }
+
+  if (menuClose && menuOverlay) {
+    menuClose.addEventListener("click", () => {
+      menuOverlay.classList.remove("open");
+      document.body.style.overflow = "";
+    });
+    menuOverlay.addEventListener("click", (e) => {
+      if (e.target === menuOverlay) {
+        menuOverlay.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+    });
+  }
+
+  /* Close menu when a nav link is clicked (e.g. EXPERIENCE) and go to section */
+  document.querySelectorAll(".menu-nav a").forEach((link) => {
+    link.addEventListener("click", () => {
+      if (menuOverlay) {
+        menuOverlay.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+    });
+  });
+
+  /* Download CV: from localStorage (admin upload) or fallback to cv.pdf */
+  var menuDownloadCv = document.getElementById("menu-download-cv");
+  if (menuDownloadCv) {
+    menuDownloadCv.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (menuOverlay) {
+        menuOverlay.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+      try {
+        var stored = localStorage.getItem("portfolio_cv");
+        if (stored) {
+          var cv = JSON.parse(stored);
+          if (cv.filename && cv.data) {
+            var binary = atob(cv.data);
+            var bytes = new Uint8Array(binary.length);
+            for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            var blob = new Blob([bytes], { type: "application/pdf" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = cv.filename;
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return;
+          }
+        }
+      } catch (err) {}
+      var fallback = document.createElement("a");
+      fallback.href = "cv.pdf";
+      fallback.download = "cv.pdf";
+      fallback.style.display = "none";
+      document.body.appendChild(fallback);
+      fallback.click();
+      document.body.removeChild(fallback);
+    });
+  }
+
+  function updateClock() {
+    if (!clockEl) return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Dhaka", hour12: false });
+    clockEl.textContent = timeStr;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  function updateCoords() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    if (coordViewport) coordViewport.textContent = "W " + w + "  H " + h;
+  }
+  updateCoords();
+  window.addEventListener("resize", updateCoords);
+  window.addEventListener("scroll", updateCoords, { passive: true });
+
+  /* Hero typing animation: type "HUMAM AHMED " then "IZU", then show blinking cursor */
+  function typeHeroName() {
+    if (!heroTyped || !heroCursor) return;
+    var part1 = "HUMAM AHMED ";
+    var part2 = "IZU";
+    var charDelay = 90;
+    var phase = "part1";
+    var idx = 0;
+    var accentSpan = null;
+    var lineSpan = document.createElement("span");
+    lineSpan.className = "hero-title-line";
+    heroTyped.appendChild(lineSpan);
+
+    function typeNext() {
+      if (phase === "part1") {
+        if (idx < part1.length) {
+          lineSpan.appendChild(document.createTextNode(part1[idx]));
+          idx++;
+          setTimeout(typeNext, charDelay);
+          return;
+        }
+        phase = "part2";
+        idx = 0;
+        heroTyped.appendChild(document.createElement("br"));
+        accentSpan = document.createElement("span");
+        accentSpan.className = "accent";
+        heroTyped.appendChild(accentSpan);
+      }
+      if (phase === "part2") {
+        if (idx < part2.length) {
+          accentSpan.appendChild(document.createTextNode(part2[idx]));
+          idx++;
+          setTimeout(typeNext, charDelay);
+          return;
+        }
+        heroCursor.classList.add("visible");
+        return;
+      }
+      setTimeout(typeNext, charDelay);
+    }
+    typeNext();
+  }
+  typeHeroName();
+
+  /* Load Experience and Projects from admin (localStorage) */
+  function escapeHtml(str) {
+    if (!str) return "";
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  var allowedDescTags = { p: 1, br: 1, b: 1, strong: 1, i: 1, em: 1, u: 1, s: 1, strike: 1, a: 1, ul: 1, ol: 1, li: 1, span: 1 };
+  function sanitizeDescriptionHtml(html) {
+    if (!html || typeof html !== "string") return "";
+    var wrap = document.createElement("div");
+    wrap.innerHTML = html;
+    function sanitizeNode(node) {
+      if (node.nodeType === 3) return true;
+      if (node.nodeType !== 1) return false;
+      var tag = node.tagName ? node.tagName.toLowerCase() : "";
+      if (!allowedDescTags[tag]) return false;
+      if (tag === "a") {
+        var href = node.getAttribute("href");
+        if (href && /^https?:\/\//i.test(href)) {
+          node.setAttribute("href", href);
+          node.setAttribute("target", "_blank");
+          node.setAttribute("rel", "noopener");
+        } else {
+          node.removeAttribute("href");
+        }
+        for (var ai = node.attributes.length - 1; ai >= 0; ai--) {
+          var ax = node.attributes[ai];
+          if (ax.name !== "href" && ax.name !== "target" && ax.name !== "rel") node.removeAttribute(ax.name);
+        }
+      } else {
+        for (var j = node.attributes.length - 1; j >= 0; j--) node.removeAttribute(node.attributes[j].name);
+      }
+      for (var k = node.childNodes.length - 1; k >= 0; k--) {
+        if (!sanitizeNode(node.childNodes[k])) node.removeChild(node.childNodes[k]);
+      }
+      return true;
+    }
+    for (var i = wrap.childNodes.length - 1; i >= 0; i--) {
+      if (!sanitizeNode(wrap.childNodes[i])) wrap.removeChild(wrap.childNodes[i]);
+    }
+    return wrap.innerHTML;
+  }
+
+  function formatMonthYear(dateStr) {
+    if (!dateStr || dateStr.length < 7) return dateStr ? dateStr.slice(0, 4) : "";
+    var parts = dateStr.split("-").map(Number);
+    var m = parts[1];
+    var y = parts[0];
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return (months[m - 1] || "") + " " + y;
+  }
+
+  function getPeriodDisplay(item) {
+    if (item.startDate) {
+      var startStr = formatMonthYear(item.startDate);
+      if (item.present) return startStr + " — Present";
+      if (item.endDate) return startStr + " — " + formatMonthYear(item.endDate);
+      return startStr + " — Present";
+    }
+    return item.period || "";
+  }
+
+  function loadPortfolioData() {
+    var experienceList = document.getElementById("experience-list");
+    var projectsList = document.getElementById("projects-list");
+    if (!experienceList || !projectsList) return;
+
+    try {
+      var experienceRaw = localStorage.getItem("portfolio_experience");
+      var experience = experienceRaw ? JSON.parse(experienceRaw) : [];
+      if (Array.isArray(experience) && experience.length > 0) {
+        experienceList.innerHTML = experience
+          .map(function (item) {
+            var safeUrl = item.companyUrl && /^https?:\/\//i.test(item.companyUrl) ? item.companyUrl : "";
+            var nameHtml = escapeHtml(item.companyName);
+            if (safeUrl) nameHtml = '<a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener" class="company-name-link">' + nameHtml + "</a>";
+            else nameHtml = "<span class=\"company-name-text\">" + nameHtml + "</span>";
+            var logoHtml = "";
+            if (safeUrl) {
+              try {
+                var domain = new URL(safeUrl).hostname;
+                var logoUrl = "https://logo.clearbit.com/" + encodeURIComponent(domain);
+                var fallbackUrl = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(domain) + "&sz=128";
+                logoHtml = '<img src="' + escapeHtml(logoUrl) + '" alt="" class="company-logo" data-fallback="' + escapeHtml(fallbackUrl) + '" onerror="var f=this.getAttribute(\'data-fallback\');if(f){this.onerror=null;this.src=f;}" />';
+              } catch (e) {}
+            }
+            var periodStr = getPeriodDisplay(item);
+            return (
+              '<article class="company-card">' +
+              '<div class="company-header">' +
+              (logoHtml ? '<div class="company-logo-wrap">' + logoHtml + "</div>" : "") +
+              '<div class="company-header-text">' +
+              "<h3 class=\"company-name\">" + nameHtml + "</h3>" +
+              "<span class=\"company-period\">" + escapeHtml(periodStr) + "</span>" +
+              "</div>" +
+              "</div>" +
+              "<p class=\"company-role\">" + escapeHtml(item.role) + "</p>" +
+              (item.description ? "<div class=\"tile-desc-wrap\"><div class=\"company-desc\">" + sanitizeDescriptionHtml(item.description) + "</div><button type=\"button\" class=\"tile-desc-toggle\" aria-expanded=\"false\">See more</button></div>" : "") +
+              "</article>"
+            );
+          })
+          .join("");
+      }
+
+      var projectsRaw = localStorage.getItem("portfolio_projects");
+      var projects = projectsRaw ? JSON.parse(projectsRaw) : [];
+      if (Array.isArray(projects) && projects.length > 0) {
+        projectsList.innerHTML = projects
+          .map(function (item) {
+            var skillHtml = "";
+            if (item.skill && item.skill.trim()) {
+              var skills = item.skill.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+              skillHtml = skills.length
+                ? "<div class=\"project-skills\">" + skills.map(function (s) { return "<span class=\"project-skill\">" + escapeHtml(s) + "</span>"; }).join("") + "</div>"
+                : "";
+            }
+            var types = item.projectType;
+            var typeStr = Array.isArray(types) ? (types.length ? types.join(" · ") : "") : (types && typeof types === "string" ? types.trim() : "");
+            var typeHtml = typeStr ? "<span class=\"project-type\">" + escapeHtml(typeStr) + "</span>" : "";
+            return (
+              '<article class="project-card">' +
+              "<div class=\"project-title-row\">" +
+              "<h3 class=\"project-title\">" + escapeHtml(item.title) + "</h3>" +
+              typeHtml +
+              "</div>" +
+              skillHtml +
+              (item.description ? "<div class=\"tile-desc-wrap\"><div class=\"project-desc\">" + sanitizeDescriptionHtml(item.description) + "</div><button type=\"button\" class=\"tile-desc-toggle\" aria-expanded=\"false\">See more</button></div>" : "") +
+              "</article>"
+            );
+          })
+          .join("");
+      }
+    } catch (e) {}
+  }
+
+  function hideSeeMoreWhenNotNeeded() {
+    document.querySelectorAll(".tile-desc-wrap").forEach(function (wrap) {
+      var desc = wrap.querySelector(".company-desc, .project-desc");
+      if (!desc) return;
+      if (desc.scrollHeight <= desc.clientHeight) wrap.classList.add("tile-desc-no-toggle");
+    });
+  }
+
+  loadPortfolioData();
+
+  function loadContactData() {
+    var contactText = document.getElementById("contact-text");
+    var contactEmail = document.getElementById("contact-email");
+    var contactLinkedin = document.getElementById("contact-linkedin");
+    var contactGithub = document.getElementById("contact-github");
+    var contactDiscord = document.getElementById("contact-discord");
+    try {
+      var raw = localStorage.getItem("portfolio_contact");
+      var c = raw ? JSON.parse(raw) : null;
+      if (c) {
+        if (contactText && c.text) contactText.textContent = c.text;
+        if (contactEmail) contactEmail.href = c.email ? "mailto:" + c.email : "#";
+        if (contactLinkedin) contactLinkedin.href = c.linkedinUrl || "#";
+        if (contactGithub) contactGithub.href = c.githubUrl || "#";
+        if (contactDiscord) contactDiscord.href = c.discordUrl || "#";
+      }
+    } catch (e) {}
+  }
+  loadContactData();
+
+  hideSeeMoreWhenNotNeeded();
+
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".tile-desc-toggle");
+    if (!btn) return;
+    e.preventDefault();
+    var wrap = btn.closest(".tile-desc-wrap");
+    if (!wrap) return;
+    var isExpanded = wrap.classList.toggle("expanded");
+    btn.setAttribute("aria-expanded", isExpanded);
+    btn.textContent = isExpanded ? "See less" : "See more";
+  });
+
+  if (yearEl) {
+    yearEl.textContent = new Date().getFullYear();
+  }
+
+  const yearFooter = document.getElementById("year-footer");
+  if (yearFooter) {
+    yearFooter.textContent = new Date().getFullYear();
+  }
+
+  const footerViewport = document.getElementById("footer-viewport");
+  if (footerViewport) {
+    function updateFooterCoord() {
+      footerViewport.textContent = `${window.innerWidth} X ${window.innerHeight} W`;
+    }
+    updateFooterCoord();
+    window.addEventListener("resize", updateFooterCoord);
+  }
+})();
