@@ -446,7 +446,11 @@
           });
         });
         if (firstEl) {
-          firstEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          firstEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          firstEl.classList.add("skill-target");
+          setTimeout(function () {
+            firstEl.classList.remove("skill-target");
+          }, 600);
         }
       });
       container.appendChild(btn);
@@ -474,7 +478,11 @@
         var proj = document.getElementById(targetId);
         if (!proj) return;
 
-        proj.scrollIntoView({ behavior: "smooth", block: "start" });
+        proj.scrollIntoView({ behavior: "smooth", block: "center" });
+        proj.classList.add("skill-target");
+        setTimeout(function () {
+          proj.classList.remove("skill-target");
+        }, 600);
 
         // Glow only this skill inside the target project
         proj.querySelectorAll(".project-skill").forEach(function (pchip) {
@@ -577,7 +585,16 @@
     document.querySelectorAll(".tile-desc-wrap").forEach(function (wrap) {
       var desc = wrap.querySelector(".company-desc, .project-desc");
       if (!desc) return;
-      if (desc.scrollHeight <= desc.clientHeight) wrap.classList.add("tile-desc-no-toggle");
+      var text = (desc.textContent || "").trim();
+      // For short descriptions, always hide the toggle to avoid "See more" on one-liners.
+      if (text.length <= 160) {
+        wrap.classList.add("tile-desc-no-toggle");
+        return;
+      }
+      // Fallback: if content doesn't overflow the clamped area, hide the toggle.
+      if (desc.scrollHeight <= desc.clientHeight) {
+        wrap.classList.add("tile-desc-no-toggle");
+      }
     });
   }
 

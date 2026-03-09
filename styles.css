@@ -881,7 +881,7 @@ body.no-custom-cursor button {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.6rem;
 }
 
 .company-header-text {
@@ -1007,13 +1007,19 @@ body.no-custom-cursor button {
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
+  transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.4s ease, opacity 0.4s ease;
 }
 
 .project-card:hover {
   transform: scale(1.02);
   background: rgba(255, 255, 255, 0.35);
   box-shadow: 0 0 28px rgba(0, 0, 0, 0.2), 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Subtle emphasis when navigated via skill click */
+.project-card.skill-target {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18), 0 4px 18px rgba(0, 0, 0, 0.08);
 }
 
 .project-title-row {
@@ -1062,7 +1068,7 @@ body.no-custom-cursor button {
   background-color: #333333;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
   border-radius: 4px;
-  transition: transform 0.25s ease, color 0.25s ease;
+  transition: transform 0.25s ease, color 0.25s ease, box-shadow 0.6s ease;
 }
 
 .project-skill:hover {
@@ -1095,7 +1101,6 @@ body.no-custom-cursor button {
 .project-skill.glow {
   box-shadow: 0 0 0 1px var(--accent-red), 0 0 12px rgba(212, 66, 60, 0.6);
   border-radius: 4px;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .project-desc p { margin: 0 0 0.5em; }
