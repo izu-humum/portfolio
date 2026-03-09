@@ -654,17 +654,19 @@
 
   // Require Supabase auth (if configured) before loading data.
   async function initAdmin() {
-    if (supabaseClient) {
-      try {
-        const result = await supabaseClient.auth.getUser();
-        if (!result || !result.data || !result.data.user) {
-          window.location.href = "login.html";
-          return;
-        }
-      } catch (e) {
+    if (!supabaseClient) {
+      window.location.href = "login.html";
+      return;
+    }
+    try {
+      const result = await supabaseClient.auth.getUser();
+      if (!result || !result.data || !result.data.user) {
         window.location.href = "login.html";
         return;
       }
+    } catch (e) {
+      window.location.href = "login.html";
+      return;
     }
 
     await ensureSupabaseDataAdmin();
@@ -672,6 +674,20 @@
     renderExperienceList();
     renderProjectsList();
     loadContactForm();
+
+    // Logout button
+    const logoutBtn = document.getElementById("admin-logout");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async function () {
+        try {
+          if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+          }
+        } finally {
+          window.location.href = "login.html";
+        }
+      });
+    }
   }
 
   initAdmin();

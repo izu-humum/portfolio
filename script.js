@@ -18,10 +18,6 @@
   const SUPABASE_TABLE = "portfolio_data";
   const SUPABASE_SINGLETON_ID = "main";
 
-  // Simple front-end password for hidden admin link.
-  // Note: this is NOT strong security because it lives in client JS.
-  const ADMIN_PASSWORD = "izu-admin";
-
   function createSupabaseClient() {
     if (!window.supabase || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
     try {
@@ -59,15 +55,11 @@
     return supabaseDataPromise;
   }
 
-  // Hidden admin link: click on footer "Izu", prompt for password, then go to admin.html.
+  // Hidden admin link: click on footer "Izu" to open login page.
   if (footerAdminLink) {
     footerAdminLink.addEventListener("click", function (e) {
       e.preventDefault();
-      var pwd = window.prompt("Enter admin password:");
-      if (!pwd) return;
-      if (pwd === ADMIN_PASSWORD) {
-        window.location.href = "admin.html";
-      }
+      window.location.href = "login.html";
     });
   }
 
