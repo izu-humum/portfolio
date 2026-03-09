@@ -62,12 +62,13 @@ body {
 }
 
 .admin-header a {
-  color: var(--admin-accent);
+  color: inherit;
   text-decoration: none;
 }
 
 .admin-header a:hover {
-  text-decoration: underline;
+  color: inherit;
+  text-decoration: none;
 }
 
 .admin-section {
