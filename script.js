@@ -28,7 +28,11 @@
     }
   }
 
-  const supabaseClient = createSupabaseClient();
+  // Reuse a single Supabase client across pages to avoid multiple GoTrue instances.
+  const supabaseClient = window.supabaseClient || createSupabaseClient();
+  if (!window.supabaseClient && supabaseClient) {
+    window.supabaseClient = supabaseClient;
+  }
   let supabaseDataPromise = null;
 
   function ensureSupabaseData() {

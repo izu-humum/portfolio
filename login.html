@@ -53,7 +53,13 @@
       if (!window.supabase) return;
       const SUPABASE_URL = "https://zrkzstwtwfgpjdhuakto.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_qNONFUTdFh_g7ejCKm3hTg_R2VUasLf";
-      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Reuse client created in script.js when available to avoid multiple GoTrue instances.
+      let client = window.supabaseClient;
+      if (!client) {
+        client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabaseClient = client;
+      }
 
       const form = document.getElementById("login-form");
       const emailInput = document.getElementById("login-email");

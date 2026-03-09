@@ -46,12 +46,12 @@ body {
 }
 
 .admin-title-link {
-  color: inherit;
+  color: var(--admin-text);
   text-decoration: none;
 }
 
 .admin-title-link:hover {
-  color: var(--admin-accent);
+  color: #6b7280; /* grey on hover */
 }
 
 .admin-header p {
@@ -578,6 +578,17 @@ body {
 }
 
 .btn-dark:hover {
+  background: var(--admin-accent);
+  color: #fff;
+}
+
+/* Logout button: neutral grey with accent hover */
+#admin-logout {
+  background: #e5e7eb;
+  color: #111;
+}
+
+#admin-logout:hover {
   background: var(--admin-accent);
   color: #fff;
 }
