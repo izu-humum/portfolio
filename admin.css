@@ -51,6 +51,12 @@ body {
   font-size: 0.95rem;
 }
 
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .admin-header a {
   color: var(--admin-accent);
   text-decoration: none;
@@ -561,6 +567,16 @@ body {
 .btn-ghost:hover {
   background: var(--admin-bg);
   color: var(--admin-text);
+}
+
+.btn-dark {
+  background: #111;
+  color: #fff;
+}
+
+.btn-dark:hover {
+  background: #000;
+  color: #fff;
 }
 
 .btn-small {
