@@ -733,7 +733,7 @@ body.no-custom-cursor button {
   text-align: center;
   background: #111;
   color: #fff;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 .login-button:hover {
