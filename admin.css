@@ -51,12 +51,6 @@ body {
   font-size: 0.95rem;
 }
 
-.admin-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
 .admin-header a {
   color: var(--admin-accent);
   text-decoration: none;
@@ -575,7 +569,7 @@ body {
 }
 
 .btn-dark:hover {
-  background: #000;
+  background: var(--admin-accent);
   color: #fff;
 }
 
@@ -664,6 +658,8 @@ body {
   border-top: 1px solid var(--admin-border);
 }
 
-.admin-footer .btn {
-  padding: 0.5rem 0;
+.admin-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
