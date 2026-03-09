@@ -513,7 +513,8 @@ body {
 }
 
 .admin-form input,
-.admin-form textarea {
+.admin-form textarea,
+.admin-form select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   font: inherit;
@@ -524,15 +525,174 @@ body {
 }
 
 .admin-form input:focus,
-.admin-form textarea:focus {
+.admin-form textarea:focus,
+.admin-form select:focus {
   outline: none;
   border-color: var(--admin-accent);
   box-shadow: 0 0 0 2px rgba(212, 66, 60, 0.15);
 }
 
+/* Project skills dropdown (inspired by daisyUI dropdown) */
+.skills-dropdown {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.skills-dropdown-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.skills-dropdown-toggle:hover {
+  border-color: rgba(212, 66, 60, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.skills-dropdown-toggle:focus-visible {
+  outline: none;
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 2px rgba(212, 66, 60, 0.18);
+}
+
+.skills-dropdown-toggle[disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.skills-dropdown-caret {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+}
+
+.skills-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.35rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0.35rem 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+  z-index: 20;
+}
+
+.skills-dropdown.open .skills-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.skills-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0.35rem; /* slightly tighter horizontal inset */
+}
+
+.skills-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.45rem; /* reduce right-side inner space */
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 6px; /* match other input radius */
+}
+
+.skills-dropdown-item input[type="checkbox"] {
+  margin: 0;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.skills-dropdown-item:hover {
+  background: rgba(212, 66, 60, 0.06);
+}
+
+.skills-dropdown-item.selected {
+  background: rgba(212, 66, 60, 0.12);
+}
+
+.skills-dropdown-item input[type="checkbox"]:checked + span {
+  color: var(--admin-accent);
+  font-weight: 600;
+}
+
+.skills-dropdown-empty {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--admin-muted);
+}
+
+/* Extra spacing between skills box and helper text */
+.skills-dropdown + .admin-hint {
+  margin-top: 0.4rem;
+}
+
 .admin-form textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+/* Admin About skills chips */
+.about-skills-admin {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.about-skills-admin input {
+  flex: 1 1 auto;
+}
+
+.admin-skill-list {
+  margin-top: 0.5rem;
+  margin-bottom: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.admin-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+.admin-skill-remove {
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.85em;
 }
 
 .form-actions {

@@ -3,6 +3,8 @@
   const STORAGE_PROJECTS = "portfolio_projects";
   const STORAGE_CV = "portfolio_cv";
   const STORAGE_CONTACT = "portfolio_contact";
+  const STORAGE_ABOUT = "portfolio_about_meta";
+  const STORAGE_SKILLS_MASTER = "portfolio_skills_master";
   const MAX_CV_BYTES = 4 * 1024 * 1024; // ~4MB (localStorage limit ~5MB)
 
   // Supabase config for shared admin data (fill these with your project settings).
@@ -29,7 +31,7 @@
     try {
       const { data, error } = await supabaseClient
         .from(SUPABASE_TABLE)
-        .select("experience, projects, contact, cv")
+        .select("experience, projects, contact, cv, about_meta, skills")
         .eq("id", SUPABASE_SINGLETON_ID)
         .maybeSingle();
       if (!error && data) {
@@ -37,6 +39,8 @@
         if (data.projects) localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(data.projects));
         if (data.contact) localStorage.setItem(STORAGE_CONTACT, JSON.stringify(data.contact));
         if (data.cv) localStorage.setItem(STORAGE_CV, JSON.stringify(data.cv));
+        if (data.about_meta) localStorage.setItem(STORAGE_ABOUT, JSON.stringify(data.about_meta));
+        if (data.skills) localStorage.setItem(STORAGE_SKILLS_MASTER, JSON.stringify(data.skills));
       }
     } catch (e) {
       console.error("Supabase load (admin) failed", e);
@@ -181,6 +185,104 @@
   });
 
   // Initial CV status is updated after Supabase sync (see init at bottom).
+
+  // --- About & Skills UI ---
+  const aboutForm = document.getElementById("about-form");
+  const aboutRoleInput = document.getElementById("about-role-input");
+  const aboutExpInput = document.getElementById("about-exp-input");
+  const aboutFocusInput = document.getElementById("about-focus-input");
+  const aboutSkillNew = document.getElementById("about-skill-new");
+  const aboutSkillAdd = document.getElementById("about-skill-add");
+  const aboutSkillsList = document.getElementById("about-skills-list");
+
+  function getAboutMeta() {
+    try {
+      const raw = localStorage.getItem(STORAGE_ABOUT);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getSkillsMaster() {
+    try {
+      const raw = localStorage.getItem(STORAGE_SKILLS_MASTER);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveAboutMeta(meta, skillsArr) {
+    localStorage.setItem(STORAGE_ABOUT, JSON.stringify(meta));
+    localStorage.setItem(STORAGE_SKILLS_MASTER, JSON.stringify(skillsArr));
+    syncToSupabase({ about_meta: meta, skills: skillsArr });
+  }
+
+  let skillsMasterCache = getSkillsMaster();
+
+  function renderAboutSkillsAdmin() {
+    if (!aboutSkillsList) return;
+    if (!skillsMasterCache.length) {
+      aboutSkillsList.innerHTML = '<span class="admin-hint">No skills yet. Add one above.</span>';
+      return;
+    }
+    aboutSkillsList.innerHTML = skillsMasterCache
+      .map(
+        (name) =>
+          `<span class="admin-skill-chip" data-name="${escapeHtml(name)}">${escapeHtml(name)} <button type="button" class="admin-skill-remove" aria-label="Remove ${escapeHtml(
+            name
+          )}">×</button></span>`
+      )
+      .join("");
+
+    aboutSkillsList.querySelectorAll(".admin-skill-remove").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const chip = this.closest(".admin-skill-chip");
+        if (!chip) return;
+        const name = chip.getAttribute("data-name");
+        skillsMasterCache = skillsMasterCache.filter((s) => s !== name);
+        renderAboutSkillsAdmin();
+      });
+    });
+  }
+
+  function loadAboutForm() {
+    const meta = getAboutMeta();
+    skillsMasterCache = getSkillsMaster();
+    if (aboutRoleInput) aboutRoleInput.value = (meta && meta.role) || "SQA Engineer II";
+    if (aboutExpInput) aboutExpInput.value = (meta && meta.experienceYears) || "3+ years";
+    if (aboutFocusInput) aboutFocusInput.value = (meta && meta.focus) || "Quality, Automation, Process";
+    renderAboutSkillsAdmin();
+  }
+
+  if (aboutForm) {
+    aboutForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const meta = {
+        role: (aboutRoleInput && aboutRoleInput.value.trim()) || "",
+        experienceYears: (aboutExpInput && aboutExpInput.value.trim()) || "",
+        focus: (aboutFocusInput && aboutFocusInput.value.trim()) || ""
+      };
+      saveAboutMeta(meta, skillsMasterCache);
+    });
+  }
+
+  if (aboutSkillAdd && aboutSkillNew) {
+    aboutSkillAdd.addEventListener("click", function () {
+      const name = aboutSkillNew.value.trim();
+      if (!name) return;
+      const lowerName = name.toLowerCase();
+      const alreadyExists = skillsMasterCache.some((s) => (s || "").toLowerCase() === lowerName);
+      if (!alreadyExists) {
+        skillsMasterCache.push(name);
+        renderAboutSkillsAdmin();
+      }
+      aboutSkillNew.value = "";
+      aboutSkillNew.focus();
+    });
+  }
 
   // --- Experience UI ---
   const experienceForm = document.getElementById("experience-form");
@@ -373,11 +475,90 @@
   const getSelectedProjectTypes = () => projTypeInputs().filter((cb) => cb.checked).map((cb) => cb.value);
   const setSelectedProjectTypes = (arr) => {
     const a = Array.isArray(arr) ? arr : (arr ? [arr] : []);
-    projTypeInputs().forEach((cb) => { cb.checked = a.includes(cb.value); });
+    projTypeInputs().forEach((cb) => {
+      cb.checked = a.includes(cb.value);
+    });
   };
-  const projSkill = document.getElementById("proj-skill");
+  const projSkillDropdown = document.getElementById("proj-skill-dropdown");
+  const projSkillToggle = document.getElementById("proj-skill-toggle");
+  const projSkillMenu = document.getElementById("proj-skill-menu");
+  const projSkillLabel = document.getElementById("proj-skill-label");
   const projectsListEl = document.getElementById("projects-list");
   const projectCancel = document.getElementById("project-cancel");
+
+  function renderProjectSkillOptions() {
+    if (!projSkillMenu) return;
+    const skills = getSkillsMaster();
+    if (!skills.length) {
+      projSkillMenu.innerHTML = '<div class="skills-dropdown-empty">Define skills in the About section first.</div>';
+      if (projSkillToggle) {
+        projSkillToggle.disabled = true;
+      }
+      return;
+    }
+    if (projSkillToggle) {
+      projSkillToggle.disabled = false;
+    }
+    projSkillMenu.innerHTML =
+      '<ul class="skills-dropdown-list">' +
+      skills
+        .map(
+          (name) =>
+            `<li><label class="skills-dropdown-item"><input type="checkbox" value="${escapeHtml(name)}" /> <span>${escapeHtml(
+              name
+            )}</span></label></li>`
+        )
+        .join("") +
+      "</ul>";
+
+    projSkillMenu.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener("change", function () {
+        updateSkillItemStates();
+        updateSkillDropdownLabel();
+      });
+    });
+    updateSkillItemStates();
+    updateSkillDropdownLabel();
+  }
+
+  function getSelectedProjectSkills() {
+    if (!projSkillMenu) return [];
+    return Array.from(projSkillMenu.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value);
+  }
+
+  function setSelectedProjectSkills(arr) {
+    if (!projSkillMenu) return;
+    const a = Array.isArray(arr) ? arr : [];
+    Array.from(projSkillMenu.querySelectorAll('input[type="checkbox"]')).forEach((cb) => {
+      cb.checked = a.includes(cb.value);
+    });
+    updateSkillItemStates();
+    updateSkillDropdownLabel();
+  }
+
+  function updateSkillItemStates() {
+    if (!projSkillMenu) return;
+    Array.from(projSkillMenu.querySelectorAll(".skills-dropdown-item")).forEach((item) => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      if (cb && cb.checked) {
+        item.classList.add("selected");
+      } else {
+        item.classList.remove("selected");
+      }
+    });
+  }
+
+  function updateSkillDropdownLabel() {
+    if (!projSkillLabel) return;
+    const selected = getSelectedProjectSkills();
+    if (!selected.length) {
+      projSkillLabel.textContent = "Select skills";
+    } else if (selected.length <= 3) {
+      projSkillLabel.textContent = selected.join(", ");
+    } else {
+      projSkillLabel.textContent = selected.length + " skills selected";
+    }
+  }
 
   function renderProjectsList() {
     const list = getProjects();
@@ -412,7 +593,12 @@
           projTitle.value = item.title;
           setSelectedProjectTypes(item.projectType);
           setDescHtml(quillProj, item.description || "");
-          projSkill.value = item.skill || "";
+          if (item.skill) {
+            const currentSkills = item.skill.split(",").map((s) => s.trim()).filter(Boolean);
+            setSelectedProjectSkills(currentSkills);
+          } else {
+            setSelectedProjectSkills([]);
+          }
           projectCancel.style.display = "inline-block";
         }
       });
@@ -429,7 +615,6 @@
             projectForm.reset();
             setDescHtml(quillProj, "");
             setSelectedProjectTypes([]);
-            if (projSkill) projSkill.value = "";
             projectId.value = "";
             projectCancel.style.display = "none";
           }
@@ -441,12 +626,13 @@
   projectForm.addEventListener("submit", function (e) {
     e.preventDefault();
     const list = getProjects();
+    const allSkills = getSelectedProjectSkills();
     const payload = {
       id: projectId.value || id(),
       title: projTitle.value.trim(),
       projectType: getSelectedProjectTypes(),
       description: getDescHtml(quillProj).trim(),
-      skill: (projSkill && projSkill.value.trim()) || "",
+      skill: allSkills.join(", "),
     };
     const idx = list.findIndex((i) => i.id === payload.id);
     if (idx >= 0) list[idx] = payload;
@@ -455,7 +641,7 @@
     projectForm.reset();
     setDescHtml(quillProj, "");
     setSelectedProjectTypes([]);
-    if (projSkill) projSkill.value = "";
+    setSelectedProjectSkills([]);
     projectId.value = "";
     projectCancel.style.display = "none";
     renderProjectsList();
@@ -465,10 +651,28 @@
     projectForm.reset();
     setDescHtml(quillProj, "");
     setSelectedProjectTypes([]);
-    if (projSkill) projSkill.value = "";
+    setSelectedProjectSkills([]);
     projectId.value = "";
     this.style.display = "none";
   });
+
+  // Custom dropdown toggle behavior for project skills
+  if (projSkillToggle && projSkillDropdown) {
+    projSkillToggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      projSkillDropdown.classList.toggle("open");
+    });
+
+    document.addEventListener("click", function () {
+      projSkillDropdown.classList.remove("open");
+    });
+
+    if (projSkillMenu) {
+      projSkillMenu.addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+    }
+  }
 
   // --- Contact UI ---
   const contactForm = document.getElementById("contact-form");
@@ -671,6 +875,8 @@
 
     await ensureSupabaseDataAdmin();
     updateCvStatus();
+    loadAboutForm();
+    renderProjectSkillOptions();
     renderExperienceList();
     renderProjectsList();
     loadContactForm();

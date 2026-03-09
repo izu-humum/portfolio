@@ -834,6 +834,7 @@ body.no-custom-cursor button {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
   font-size: 0.9rem;
 }
 
@@ -843,6 +844,11 @@ body.no-custom-cursor button {
   letter-spacing: 0.15em;
   color: var(--text-muted);
   min-width: 6rem;
+}
+
+/* Ensure meta values (right side) take remaining row width and wrap from the left edge */
+.meta-list li span:last-child {
+  flex: 1;
 }
 
 /* Experience / Companies */
@@ -1062,6 +1068,34 @@ body.no-custom-cursor button {
 .project-skill:hover {
   transform: scale(1.08);
   color: var(--accent-red);
+}
+
+/* About skills: inline text, same style as focus row */
+#about-skills {
+  display: inline;
+}
+
+.about-skill {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.about-skill:hover {
+  color: var(--accent-red);
+}
+
+/* Glow effect for project skills when navigated from About skills */
+.project-skill.glow {
+  box-shadow: 0 0 0 1px var(--accent-red), 0 0 12px rgba(212, 66, 60, 0.6);
+  border-radius: 4px;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .project-desc p { margin: 0 0 0.5em; }

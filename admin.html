@@ -41,6 +41,38 @@
         <p id="cv-status" class="cv-status"></p>
       </section>
 
+      <!-- About & Skills -->
+      <section class="admin-section">
+        <h2>About & Skills</h2>
+        <p class="admin-hint">Control the ROLE, EXPERIENCE, FOCUS, and SKILLS shown in the About section of your portfolio.</p>
+        <form id="about-form" class="admin-form">
+          <div class="form-row">
+            <label for="about-role-input">Role</label>
+            <input type="text" id="about-role-input" placeholder="e.g. SQA Engineer II" />
+          </div>
+          <div class="form-row">
+            <label for="about-exp-input">Experience label</label>
+            <input type="text" id="about-exp-input" placeholder="e.g. 3+ years" />
+          </div>
+          <div class="form-row">
+            <label for="about-focus-input">Focus (comma-separated)</label>
+            <input type="text" id="about-focus-input" placeholder="e.g. Quality, Automation, Process" />
+          </div>
+          <div class="form-row">
+            <label for="about-skill-new">Skills (master list)</label>
+            <div class="about-skills-admin">
+              <input type="text" id="about-skill-new" placeholder="e.g. Web3 testing" />
+              <button type="button" class="btn btn-ghost" id="about-skill-add">Add</button>
+            </div>
+            <div id="about-skills-list" class="admin-skill-list"></div>
+            <p class="admin-hint">These skills appear in the About section and are available to select when creating projects.</p>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save About</button>
+          </div>
+        </form>
+      </section>
+
       <!-- Experience -->
       <section class="admin-section">
         <h2>Experience</h2>
@@ -111,8 +143,15 @@
             <div id="proj-desc-editor" class="quill-editor-wrap"></div>
           </div>
           <div class="form-row">
-            <label for="proj-skill">Skills</label>
-            <input type="text" id="proj-skill" placeholder="e.g. Selenium, Python, API testing" />
+            <label>Skills</label>
+            <div class="skills-dropdown" id="proj-skill-dropdown">
+              <button type="button" class="skills-dropdown-toggle" id="proj-skill-toggle">
+                <span id="proj-skill-label">Select skills</span>
+                <span class="skills-dropdown-caret">▾</span>
+              </button>
+              <div class="skills-dropdown-menu" id="proj-skill-menu"></div>
+            </div>
+            <p class="admin-hint">Select skills defined in the About section.</p>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save Project</button>

@@ -42,7 +42,7 @@
       try {
         const { data, error } = await supabaseClient
           .from(SUPABASE_TABLE)
-          .select("experience, projects, contact, cv")
+          .select("experience, projects, contact, cv, about_meta, skills")
           .eq("id", SUPABASE_SINGLETON_ID)
           .maybeSingle();
         if (error || !data) return null;
@@ -50,6 +50,8 @@
         if (data.projects) localStorage.setItem("portfolio_projects", JSON.stringify(data.projects));
         if (data.contact) localStorage.setItem("portfolio_contact", JSON.stringify(data.contact));
         if (data.cv) localStorage.setItem("portfolio_cv", JSON.stringify(data.cv));
+        if (data.about_meta) localStorage.setItem("portfolio_about_meta", JSON.stringify(data.about_meta));
+        if (data.skills) localStorage.setItem("portfolio_skills_master", JSON.stringify(data.skills));
         return data;
       } catch (e) {
         console.error("Supabase load failed", e);
@@ -388,6 +390,105 @@
     return item.period || "";
   }
 
+  function loadAboutMeta() {
+    ensureSupabaseData().then(function () {
+      try {
+        var raw = localStorage.getItem("portfolio_about_meta");
+        var meta = raw ? JSON.parse(raw) : null;
+        if (meta) {
+          var roleEl = document.getElementById("about-role");
+          var expEl = document.getElementById("about-experience");
+          var focusEl = document.getElementById("about-focus");
+          if (roleEl && meta.role) roleEl.textContent = meta.role;
+          if (expEl && meta.experienceYears) expEl.textContent = meta.experienceYears;
+          if (focusEl && meta.focus) {
+            var focusParts = meta.focus.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+            focusEl.textContent = focusParts.length ? focusParts.join(" · ") : meta.focus;
+          }
+        }
+      } catch (e) {}
+    });
+  }
+
+  function renderAboutSkills(skillIndex) {
+    var container = document.getElementById("about-skills");
+    if (!container) return;
+    var names = Object.keys(skillIndex);
+    if (!names.length) {
+      container.textContent = "";
+      return;
+    }
+    container.innerHTML = "";
+    container.className = "";
+    names.forEach(function (name) {
+      if (container.childNodes.length > 0) {
+        container.appendChild(document.createTextNode(" · "));
+      }
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "about-skill";
+      btn.textContent = name;
+      var projectIds = skillIndex[name];
+      btn.addEventListener("click", function () {
+        if (!projectIds || !projectIds.length) return;
+        var firstEl = null;
+        projectIds.forEach(function (pid) {
+          var el = document.getElementById(pid);
+          if (!el) return;
+          if (!firstEl) firstEl = el;
+          el.querySelectorAll(".project-skill").forEach(function (chip) {
+            if (chip.textContent.trim() === name) {
+              chip.classList.add("glow");
+              setTimeout(function () {
+                chip.classList.remove("glow");
+              }, 3000);
+            }
+          });
+        });
+        if (firstEl) {
+          firstEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function setupProjectSkillCycling(skillIndex) {
+    var cycleIndex = {};
+    Object.keys(skillIndex).forEach(function (name) {
+      cycleIndex[name] = 0;
+    });
+
+    document.querySelectorAll(".project-skill").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var name = this.textContent.trim();
+        var ids = skillIndex[name];
+        if (!ids || !ids.length) return;
+
+        // Advance to next project using this skill
+        var idx = (cycleIndex[name] || 0) + 1;
+        if (idx >= ids.length) idx = 0;
+        cycleIndex[name] = idx;
+
+        var targetId = ids[idx];
+        var proj = document.getElementById(targetId);
+        if (!proj) return;
+
+        proj.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // Glow only this skill inside the target project
+        proj.querySelectorAll(".project-skill").forEach(function (pchip) {
+          if (pchip.textContent.trim() === name) {
+            pchip.classList.add("glow");
+            setTimeout(function () {
+              pchip.classList.remove("glow");
+            }, 3000);
+          }
+        });
+      });
+    });
+  }
+
   function loadPortfolioData() {
     var experienceList = document.getElementById("experience-list");
     var projectsList = document.getElementById("projects-list");
@@ -434,11 +535,17 @@
         var projectsRaw = localStorage.getItem("portfolio_projects");
         var projects = projectsRaw ? JSON.parse(projectsRaw) : [];
         if (Array.isArray(projects) && projects.length > 0) {
+          var skillIndex = {};
           projectsList.innerHTML = projects
-            .map(function (item) {
+            .map(function (item, idx) {
+              var projectId = item.id || ("project-" + idx);
               var skillHtml = "";
               if (item.skill && item.skill.trim()) {
                 var skills = item.skill.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+                skills.forEach(function (s) {
+                  if (!skillIndex[s]) skillIndex[s] = [];
+                  if (skillIndex[s].indexOf(projectId) === -1) skillIndex[s].push(projectId);
+                });
                 skillHtml = skills.length
                   ? "<div class=\"project-skills\">" + skills.map(function (s) { return "<span class=\"project-skill\">" + escapeHtml(s) + "</span>"; }).join("") + "</div>"
                   : "";
@@ -447,7 +554,7 @@
               var typeStr = Array.isArray(types) ? (types.length ? types.join(" · ") : "") : (types && typeof types === "string" ? types.trim() : "");
               var typeHtml = typeStr ? "<span class=\"project-type\">" + escapeHtml(typeStr) + "</span>" : "";
               return (
-                '<article class="project-card">' +
+                '<article class="project-card" id="' + escapeHtml(projectId) + '">' +
                 "<div class=\"project-title-row\">" +
                 "<h3 class=\"project-title\">" + escapeHtml(item.title) + "</h3>" +
                 typeHtml +
@@ -458,6 +565,9 @@
               );
             })
             .join("");
+
+          renderAboutSkills(skillIndex);
+          setupProjectSkillCycling(skillIndex);
         }
       } catch (e) {}
     });
@@ -472,6 +582,7 @@
   }
 
   loadPortfolioData();
+  loadAboutMeta();
 
   function loadContactData() {
     var contactText = document.getElementById("contact-text");
