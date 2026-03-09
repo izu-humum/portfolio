@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Admin Login — Humam Ahmed Izu</title>
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+  <link href="https://api.fontshare.com/v2/css?f[]=aeonik@400,500,600,700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="login-body">
+  <!-- Custom cursor: keep same crosshair so login feels consistent -->
+  <div id="cursor-dot" class="cursor-dot" aria-hidden="true"></div>
+  <div id="cursor-ring" class="cursor-ring" aria-hidden="true">
+    <span class="cursor-cross"></span>
+  </div>
+
+  <main class="login-main">
+    <section class="login-panel">
+      <div class="login-panel-inner">
+        <p class="login-label">ADMIN ACCESS</p>
+        <h1 class="login-title">HUMAM AHMED <span class="accent">IZU</span></h1>
+        <p class="login-subtitle">Sign in to update experience, projects, and contact data.</p>
+
+        <form id="login-form" class="login-form" autocomplete="on">
+          <div class="login-field">
+            <label for="login-email">EMAIL</label>
+            <input type="email" id="login-email" name="email" required />
+          </div>
+          <div class="login-field">
+            <label for="login-password">PASSWORD</label>
+            <input type="password" id="login-password" name="password" required />
+          </div>
+          <button type="submit" class="btn-ava login-button">LOGIN</button>
+          <p id="login-error" class="login-error" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.0/dist/umd/supabase.min.js" integrity="sha384-2xwZJq3Zzs32qcnBS0dMZC/7jb4OGNA6rnPL81lTS12CK481K3SUm9efoBB+tzwD" crossorigin="anonymous"></script>
+  <!-- Shared cursor / utilities (safe if some elements are missing) -->
+  <script src="script.js"></script>
+
+  <script>
+    (function () {
+      if (!window.supabase) return;
+      const SUPABASE_URL = "https://zrkzstwtwfgpjdhuakto.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_qNONFUTdFh_g7ejCKm3hTg_R2VUasLf";
+      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const form = document.getElementById("login-form");
+      const emailInput = document.getElementById("login-email");
+      const passwordInput = document.getElementById("login-password");
+      const errorEl = document.getElementById("login-error");
+
+      if (!form || !emailInput || !passwordInput) return;
+
+      // If already logged in, skip to admin
+      client.auth.getUser().then(function (result) {
+        if (result && result.data && result.data.user) {
+          window.location.href = "admin.html";
+        }
+      }).catch(function () {});
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorEl.textContent = "";
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        if (!email || !password) {
+          errorEl.textContent = "Email and password are required.";
+          return;
+        }
+        client.auth.signInWithPassword({ email: email, password: password })
+          .then(function (result) {
+            if (result.error) {
+              errorEl.textContent = "Login failed. Check your email and password.";
+            } else {
+              window.location.href = "admin.html";
+            }
+          })
+          .catch(function () {
+            errorEl.textContent = "Unexpected error. Please try again.";
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
+

@@ -652,11 +652,27 @@
     if (e.target === datePickerDropdown) closeDatePicker();
   });
 
-  // Load any existing data from Supabase, then render admin UI.
-  ensureSupabaseDataAdmin().then(function () {
+  // Require Supabase auth (if configured) before loading data.
+  async function initAdmin() {
+    if (supabaseClient) {
+      try {
+        const result = await supabaseClient.auth.getUser();
+        if (!result || !result.data || !result.data.user) {
+          window.location.href = "login.html";
+          return;
+        }
+      } catch (e) {
+        window.location.href = "login.html";
+        return;
+      }
+    }
+
+    await ensureSupabaseDataAdmin();
     updateCvStatus();
     renderExperienceList();
     renderProjectsList();
     loadContactForm();
-  });
+  }
+
+  initAdmin();
 })();
