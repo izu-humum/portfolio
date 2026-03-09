@@ -10,6 +10,66 @@
   const yearEl = document.getElementById("year");
   const heroTyped = document.getElementById("hero-typed");
   const heroCursor = document.getElementById("hero-cursor");
+  const footerAdminLink = document.getElementById("footer-admin-link");
+
+  // Supabase config for shared portfolio data (experience, projects, contact, CV).
+  const SUPABASE_URL = "https://zrkzstwtwfgpjdhuakto.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_qNONFUTdFh_g7ejCKm3hTg_R2VUasLf";
+  const SUPABASE_TABLE = "portfolio_data";
+  const SUPABASE_SINGLETON_ID = "main";
+
+  // Simple front-end password for hidden admin link.
+  // Note: this is NOT strong security because it lives in client JS.
+  const ADMIN_PASSWORD = "izu-admin";
+
+  function createSupabaseClient() {
+    if (!window.supabase || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    try {
+      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {
+      console.error("Supabase init failed", e);
+      return null;
+    }
+  }
+
+  const supabaseClient = createSupabaseClient();
+  let supabaseDataPromise = null;
+
+  function ensureSupabaseData() {
+    if (!supabaseClient) return Promise.resolve(null);
+    if (supabaseDataPromise) return supabaseDataPromise;
+    supabaseDataPromise = (async function () {
+      try {
+        const { data, error } = await supabaseClient
+          .from(SUPABASE_TABLE)
+          .select("experience, projects, contact, cv")
+          .eq("id", SUPABASE_SINGLETON_ID)
+          .maybeSingle();
+        if (error || !data) return null;
+        if (data.experience) localStorage.setItem("portfolio_experience", JSON.stringify(data.experience));
+        if (data.projects) localStorage.setItem("portfolio_projects", JSON.stringify(data.projects));
+        if (data.contact) localStorage.setItem("portfolio_contact", JSON.stringify(data.contact));
+        if (data.cv) localStorage.setItem("portfolio_cv", JSON.stringify(data.cv));
+        return data;
+      } catch (e) {
+        console.error("Supabase load failed", e);
+        return null;
+      }
+    })();
+    return supabaseDataPromise;
+  }
+
+  // Hidden admin link: click on footer "Izu", prompt for password, then go to admin.html.
+  if (footerAdminLink) {
+    footerAdminLink.addEventListener("click", function (e) {
+      e.preventDefault();
+      var pwd = window.prompt("Enter admin password:");
+      if (!pwd) return;
+      if (pwd === ADMIN_PASSWORD) {
+        window.location.href = "admin.html";
+      }
+    });
+  }
 
   let mouseX = 0, mouseY = 0;
   let dotX = 0, dotY = 0;
@@ -337,72 +397,74 @@
     var projectsList = document.getElementById("projects-list");
     if (!experienceList || !projectsList) return;
 
-    try {
-      var experienceRaw = localStorage.getItem("portfolio_experience");
-      var experience = experienceRaw ? JSON.parse(experienceRaw) : [];
-      if (Array.isArray(experience) && experience.length > 0) {
-        experienceList.innerHTML = experience
-          .map(function (item) {
-            var safeUrl = item.companyUrl && /^https?:\/\//i.test(item.companyUrl) ? item.companyUrl : "";
-            var nameHtml = escapeHtml(item.companyName);
-            if (safeUrl) nameHtml = '<a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener" class="company-name-link">' + nameHtml + "</a>";
-            else nameHtml = "<span class=\"company-name-text\">" + nameHtml + "</span>";
-            var logoHtml = "";
-            if (safeUrl) {
-              try {
-                var domain = new URL(safeUrl).hostname;
-                var logoUrl = "https://logo.clearbit.com/" + encodeURIComponent(domain);
-                var fallbackUrl = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(domain) + "&sz=128";
-                logoHtml = '<img src="' + escapeHtml(logoUrl) + '" alt="" class="company-logo" data-fallback="' + escapeHtml(fallbackUrl) + '" onerror="var f=this.getAttribute(\'data-fallback\');if(f){this.onerror=null;this.src=f;}" />';
-              } catch (e) {}
-            }
-            var periodStr = getPeriodDisplay(item);
-            return (
-              '<article class="company-card">' +
-              '<div class="company-header">' +
-              (logoHtml ? '<div class="company-logo-wrap">' + logoHtml + "</div>" : "") +
-              '<div class="company-header-text">' +
-              "<h3 class=\"company-name\">" + nameHtml + "</h3>" +
-              "<span class=\"company-period\">" + escapeHtml(periodStr) + "</span>" +
-              "</div>" +
-              "</div>" +
-              "<p class=\"company-role\">" + escapeHtml(item.role) + "</p>" +
-              (item.description ? "<div class=\"tile-desc-wrap\"><div class=\"company-desc\">" + sanitizeDescriptionHtml(item.description) + "</div><button type=\"button\" class=\"tile-desc-toggle\" aria-expanded=\"false\">See more</button></div>" : "") +
-              "</article>"
-            );
-          })
-          .join("");
-      }
+    ensureSupabaseData().then(function () {
+      try {
+        var experienceRaw = localStorage.getItem("portfolio_experience");
+        var experience = experienceRaw ? JSON.parse(experienceRaw) : [];
+        if (Array.isArray(experience) && experience.length > 0) {
+          experienceList.innerHTML = experience
+            .map(function (item) {
+              var safeUrl = item.companyUrl && /^https?:\/\//i.test(item.companyUrl) ? item.companyUrl : "";
+              var nameHtml = escapeHtml(item.companyName);
+              if (safeUrl) nameHtml = '<a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener" class="company-name-link">' + nameHtml + "</a>";
+              else nameHtml = "<span class=\"company-name-text\">" + nameHtml + "</span>";
+              var logoHtml = "";
+              if (safeUrl) {
+                try {
+                  var domain = new URL(safeUrl).hostname;
+                  var logoUrl = "https://logo.clearbit.com/" + encodeURIComponent(domain);
+                  var fallbackUrl = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(domain) + "&sz=128";
+                  logoHtml = '<img src="' + escapeHtml(logoUrl) + '" alt="" class="company-logo" data-fallback="' + escapeHtml(fallbackUrl) + '" onerror="var f=this.getAttribute(\'data-fallback\');if(f){this.onerror=null;this.src=f;}" />';
+                } catch (e) {}
+              }
+              var periodStr = getPeriodDisplay(item);
+              return (
+                '<article class="company-card">' +
+                '<div class="company-header">' +
+                (logoHtml ? '<div class="company-logo-wrap">' + logoHtml + "</div>" : "") +
+                '<div class="company-header-text">' +
+                "<h3 class=\"company-name\">" + nameHtml + "</h3>" +
+                "<span class=\"company-period\">" + escapeHtml(periodStr) + "</span>" +
+                "</div>" +
+                "</div>" +
+                "<p class=\"company-role\">" + escapeHtml(item.role) + "</p>" +
+                (item.description ? "<div class=\"tile-desc-wrap\"><div class=\"company-desc\">" + sanitizeDescriptionHtml(item.description) + "</div><button type=\"button\" class=\"tile-desc-toggle\" aria-expanded=\"false\">See more</button></div>" : "") +
+                "</article>"
+              );
+            })
+            .join("");
+        }
 
-      var projectsRaw = localStorage.getItem("portfolio_projects");
-      var projects = projectsRaw ? JSON.parse(projectsRaw) : [];
-      if (Array.isArray(projects) && projects.length > 0) {
-        projectsList.innerHTML = projects
-          .map(function (item) {
-            var skillHtml = "";
-            if (item.skill && item.skill.trim()) {
-              var skills = item.skill.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-              skillHtml = skills.length
-                ? "<div class=\"project-skills\">" + skills.map(function (s) { return "<span class=\"project-skill\">" + escapeHtml(s) + "</span>"; }).join("") + "</div>"
-                : "";
-            }
-            var types = item.projectType;
-            var typeStr = Array.isArray(types) ? (types.length ? types.join(" · ") : "") : (types && typeof types === "string" ? types.trim() : "");
-            var typeHtml = typeStr ? "<span class=\"project-type\">" + escapeHtml(typeStr) + "</span>" : "";
-            return (
-              '<article class="project-card">' +
-              "<div class=\"project-title-row\">" +
-              "<h3 class=\"project-title\">" + escapeHtml(item.title) + "</h3>" +
-              typeHtml +
-              "</div>" +
-              skillHtml +
-              (item.description ? "<div class=\"tile-desc-wrap\"><div class=\"project-desc\">" + sanitizeDescriptionHtml(item.description) + "</div><button type=\"button\" class=\"tile-desc-toggle\" aria-expanded=\"false\">See more</button></div>" : "") +
-              "</article>"
-            );
-          })
-          .join("");
-      }
-    } catch (e) {}
+        var projectsRaw = localStorage.getItem("portfolio_projects");
+        var projects = projectsRaw ? JSON.parse(projectsRaw) : [];
+        if (Array.isArray(projects) && projects.length > 0) {
+          projectsList.innerHTML = projects
+            .map(function (item) {
+              var skillHtml = "";
+              if (item.skill && item.skill.trim()) {
+                var skills = item.skill.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+                skillHtml = skills.length
+                  ? "<div class=\"project-skills\">" + skills.map(function (s) { return "<span class=\"project-skill\">" + escapeHtml(s) + "</span>"; }).join("") + "</div>"
+                  : "";
+              }
+              var types = item.projectType;
+              var typeStr = Array.isArray(types) ? (types.length ? types.join(" · ") : "") : (types && typeof types === "string" ? types.trim() : "");
+              var typeHtml = typeStr ? "<span class=\"project-type\">" + escapeHtml(typeStr) + "</span>" : "";
+              return (
+                '<article class="project-card">' +
+                "<div class=\"project-title-row\">" +
+                "<h3 class=\"project-title\">" + escapeHtml(item.title) + "</h3>" +
+                typeHtml +
+                "</div>" +
+                skillHtml +
+                (item.description ? "<div class=\"tile-desc-wrap\"><div class=\"project-desc\">" + sanitizeDescriptionHtml(item.description) + "</div><button type=\"button\" class=\"tile-desc-toggle\" aria-expanded=\"false\">See more</button></div>" : "") +
+                "</article>"
+              );
+            })
+            .join("");
+        }
+      } catch (e) {}
+    });
   }
 
   function hideSeeMoreWhenNotNeeded() {
@@ -421,17 +483,19 @@
     var contactLinkedin = document.getElementById("contact-linkedin");
     var contactGithub = document.getElementById("contact-github");
     var contactDiscord = document.getElementById("contact-discord");
-    try {
-      var raw = localStorage.getItem("portfolio_contact");
-      var c = raw ? JSON.parse(raw) : null;
-      if (c) {
-        if (contactText && c.text) contactText.textContent = c.text;
-        if (contactEmail) contactEmail.href = c.email ? "mailto:" + c.email : "#";
-        if (contactLinkedin) contactLinkedin.href = c.linkedinUrl || "#";
-        if (contactGithub) contactGithub.href = c.githubUrl || "#";
-        if (contactDiscord) contactDiscord.href = c.discordUrl || "#";
-      }
-    } catch (e) {}
+    ensureSupabaseData().then(function () {
+      try {
+        var raw = localStorage.getItem("portfolio_contact");
+        var c = raw ? JSON.parse(raw) : null;
+        if (c) {
+          if (contactText && c.text) contactText.textContent = c.text;
+          if (contactEmail) contactEmail.href = c.email ? "mailto:" + c.email : "#";
+          if (contactLinkedin) contactLinkedin.href = c.linkedinUrl || "#";
+          if (contactGithub) contactGithub.href = c.githubUrl || "#";
+          if (contactDiscord) contactDiscord.href = c.discordUrl || "#";
+        }
+      } catch (e) {}
+    });
   }
   loadContactData();
 

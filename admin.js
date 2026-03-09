@@ -5,6 +5,60 @@
   const STORAGE_CONTACT = "portfolio_contact";
   const MAX_CV_BYTES = 4 * 1024 * 1024; // ~4MB (localStorage limit ~5MB)
 
+  // Supabase config for shared admin data (fill these with your project settings).
+  const SUPABASE_URL = "https://zrkzstwtwfgpjdhuakto.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_qNONFUTdFh_g7ejCKm3hTg_R2VUasLf";
+  const SUPABASE_TABLE = "portfolio_data";
+  const SUPABASE_SINGLETON_ID = "main";
+
+  function createSupabaseClient() {
+    if (!window.supabase || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    try {
+      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {
+      console.error("Supabase init failed", e);
+      return null;
+    }
+  }
+
+  const supabaseClient = createSupabaseClient();
+  let supabaseDataLoaded = false;
+
+  async function ensureSupabaseDataAdmin() {
+    if (!supabaseClient || supabaseDataLoaded) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from(SUPABASE_TABLE)
+        .select("experience, projects, contact, cv")
+        .eq("id", SUPABASE_SINGLETON_ID)
+        .maybeSingle();
+      if (!error && data) {
+        if (data.experience) localStorage.setItem(STORAGE_EXPERIENCE, JSON.stringify(data.experience));
+        if (data.projects) localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(data.projects));
+        if (data.contact) localStorage.setItem(STORAGE_CONTACT, JSON.stringify(data.contact));
+        if (data.cv) localStorage.setItem(STORAGE_CV, JSON.stringify(data.cv));
+      }
+    } catch (e) {
+      console.error("Supabase load (admin) failed", e);
+    }
+    supabaseDataLoaded = true;
+  }
+
+  function syncToSupabase(patch) {
+    if (!supabaseClient || !patch) return;
+    (async function () {
+      try {
+        const payload = Object.assign({ id: SUPABASE_SINGLETON_ID }, patch);
+        const { error } = await supabaseClient
+          .from(SUPABASE_TABLE)
+          .upsert(payload, { onConflict: "id" });
+        if (error) console.error("Supabase sync error", error);
+      } catch (e) {
+        console.error("Supabase sync failed", e);
+      }
+    })();
+  }
+
   function getExperience() {
     try {
       const raw = localStorage.getItem(STORAGE_EXPERIENCE);
@@ -25,10 +79,12 @@
 
   function saveExperience(list) {
     localStorage.setItem(STORAGE_EXPERIENCE, JSON.stringify(list));
+    syncToSupabase({ experience: list });
   }
 
   function saveProjects(list) {
     localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(list));
+    syncToSupabase({ projects: list });
   }
 
   function id() {
@@ -46,6 +102,7 @@
 
   function saveContact(data) {
     localStorage.setItem(STORAGE_CONTACT, JSON.stringify(data));
+    syncToSupabase({ contact: data });
   }
 
   // --- CV UI ---
@@ -99,7 +156,9 @@
     reader.onload = function () {
       try {
         const base64 = reader.result.split(",")[1] || reader.result;
-        localStorage.setItem(STORAGE_CV, JSON.stringify({ filename: filename, data: base64 }));
+        const payload = { filename: filename, data: base64 };
+        localStorage.setItem(STORAGE_CV, JSON.stringify(payload));
+        syncToSupabase({ cv: payload });
         setCvStatus("CV uploaded. It will appear as \"Download CV\" on the portfolio.");
         updateCvStatus();
         cvFileInput.value = "";
@@ -114,13 +173,14 @@
   cvRemoveBtn.addEventListener("click", function () {
     if (confirm("Remove the uploaded CV? Visitors will see the fallback (cv.pdf) if you have one.")) {
       localStorage.removeItem(STORAGE_CV);
+      syncToSupabase({ cv: null });
       updateCvStatus();
       cvFileInput.value = "";
       cvFilenameInput.value = "";
     }
   });
 
-  updateCvStatus();
+  // Initial CV status is updated after Supabase sync (see init at bottom).
 
   // --- Experience UI ---
   const experienceForm = document.getElementById("experience-form");
@@ -418,7 +478,7 @@
   const contactGithubInput = document.getElementById("contact-github-input");
   const contactDiscordInput = document.getElementById("contact-discord-input");
 
-  (function loadContactForm() {
+  function loadContactForm() {
     const c = getContact();
     if (c) {
       if (contactTextInput) contactTextInput.value = c.text || "";
@@ -427,7 +487,7 @@
       if (contactGithubInput) contactGithubInput.value = c.githubUrl || "";
       if (contactDiscordInput) contactDiscordInput.value = c.discordUrl || "";
     }
-  })();
+  }
 
   if (contactForm) {
     contactForm.addEventListener("submit", function (e) {
@@ -592,6 +652,11 @@
     if (e.target === datePickerDropdown) closeDatePicker();
   });
 
-  renderExperienceList();
-  renderProjectsList();
+  // Load any existing data from Supabase, then render admin UI.
+  ensureSupabaseDataAdmin().then(function () {
+    updateCvStatus();
+    renderExperienceList();
+    renderProjectsList();
+    loadContactForm();
+  });
 })();
