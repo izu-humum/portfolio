@@ -62,6 +62,142 @@ body.no-custom-cursor button {
   cursor: pointer;
 }
 
+/* Hide cursor during loader */
+body.loader-active .cursor-dot,
+body.loader-active .cursor-ring {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Landing page loader overlay */
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s ease;
+  animation: loader-fade-in 0.5s ease-out both;
+}
+
+@keyframes loader-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.loader-overlay.loader-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s ease;
+}
+
+.loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.loader-line-wrap {
+  position: relative;
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.loader-line-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  margin-left: -0.5px;
+  background: #666;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.loader-line-fill {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 4ch;
+  margin-left: -2ch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  transition: height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.loader-line-white {
+  width: 1px;
+  flex: 1;
+  min-height: 0;
+  background: linear-gradient(to bottom, #fff 0%, rgba(255, 255, 255, 0.95) 100%);
+  margin-bottom: 0.6rem;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+
+.loader-percent {
+  color: #fff;
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.25rem;
+  background: #333;
+  min-width: 4ch;
+  text-align: center;
+  transition: opacity 0.15s ease;
+}
+
+.loader-coord-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  color: #eee;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.loader-coord-left,
+.loader-coord-right {
+  opacity: 0.9;
+}
+
+.loader-coord-right-strip {
+  position: absolute;
+  top: 50%;
+  right: 1.5rem;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+  color: #eee;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.loader-coord-strip-text {
+  display: block;
+}
+
 /* Custom cursor: dot removed (crosshair only) */
 .cursor-dot {
   display: none;
@@ -373,7 +509,7 @@ body.no-custom-cursor button {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(280px, 1fr) auto minmax(200px, 1fr);
   align-items: center;
   gap: 3rem; /* more space between columns to avoid overlap with right text/axis */
   max-width: 1200px;
@@ -382,6 +518,7 @@ body.no-custom-cursor button {
 
 .hero-left {
   max-width: 380px;
+  text-align: left; /* align label and name to same left edge */
 }
 
 .hero-label {
@@ -395,12 +532,14 @@ body.no-custom-cursor button {
 
 .hero-title-ava {
   font-family: var(--font-heading);
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: clamp(1.75rem, 4vw, 3rem);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: 0.02em;
   margin: 0 0 0.5rem;
   text-transform: uppercase;
+  min-width: 18ch; /* reserve space for "HUMAM AHMED IZU" so layout stays fixed during typing */
+  min-height: 2.2em; /* reserve height for 2 lines so layout doesn't shift when "IZU" appears */
 }
 
 .hero-title-line {
@@ -1311,7 +1450,7 @@ body.no-custom-cursor button {
   }
 
   .hero-title-ava {
-    font-size: clamp(1.6rem, 8vw, 2.5rem);
+    font-size: clamp(1.25rem, 6vw, 2rem);
   }
 
   .hero-title-line {

@@ -13,6 +13,26 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Landing page loader -->
+  <div id="loader-overlay" class="loader-overlay" aria-hidden="false">
+    <div class="loader-content">
+      <div class="loader-line-wrap" id="loader-line-wrap">
+        <div class="loader-line-track"></div>
+        <div class="loader-line-fill" id="loader-line-fill">
+          <div class="loader-line-white"></div>
+          <span class="loader-percent" id="loader-percent">0%</span>
+        </div>
+      </div>
+    </div>
+    <div class="loader-coord-footer">
+      <span class="loader-coord-left" id="loader-coord-left">W 0  H 0</span>
+      <span class="loader-coord-right">© <span id="loader-year">2026</span></span>
+    </div>
+    <div class="loader-coord-right-strip" aria-hidden="true">
+      <span class="loader-coord-strip-text" id="loader-coord-strip">X 0  Y 0</span>
+    </div>
+  </div>
+
   <!-- Custom cursor: crosshair + second pointer (trailing) -->
   <div id="cursor-dot" class="cursor-dot" aria-hidden="true"></div>
   <div id="cursor-ring" class="cursor-ring" aria-hidden="true">
@@ -188,7 +208,6 @@
   <div id="menu-overlay" class="menu-overlay" aria-hidden="true">
     <button type="button" class="menu-close" id="menu-close" aria-label="Close menu">×</button>
     <nav class="menu-nav">
-      <a href="#hero">HOME</a>
       <a href="#about">ABOUT</a>
       <a href="#projects">PROJECTS</a>
       <a href="#experience">EXPERIENCE</a>
