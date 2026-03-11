@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
@@ -27,7 +28,13 @@
         <form id="cv-form" class="admin-form">
           <div class="form-row">
             <label for="cv-file">PDF file</label>
-            <input type="file" id="cv-file" accept=".pdf" />
+            <div class="cv-file-row">
+              <input type="file" id="cv-file" accept=".pdf" class="cv-file-input-hidden" />
+              <button type="button" class="btn btn-icon-3d btn-icon-3d-neutral cv-file-trigger" id="cv-file-trigger" aria-label="Choose PDF file">
+                <span class="icon-glyph">⬆︎</span>
+              </button>
+              <span id="cv-file-label" class="cv-file-label">No file selected</span>
+            </div>
           </div>
           <div class="form-row">
             <label for="cv-filename">Download filename (optional)</label>
@@ -62,7 +69,9 @@
             <label for="about-skill-new">Skills (master list)</label>
             <div class="about-skills-admin">
               <input type="text" id="about-skill-new" placeholder="e.g. Web3 testing" />
-              <button type="button" class="btn btn-ghost" id="about-skill-add">Add</button>
+              <button type="button" class="btn btn-icon-3d btn-icon-3d-neutral" id="about-skill-add" aria-label="Add skill">
+                <span class="icon-glyph">+</span>
+              </button>
             </div>
             <div id="about-skills-list" class="admin-skill-list"></div>
             <p class="admin-hint">These skills appear in the About section and are available to select when creating projects.</p>
@@ -199,6 +208,22 @@
         <button type="button" class="btn btn-primary" id="admin-logout">Logout</button>
       </div>
     </footer>
+  </div>
+
+  <!-- Inline status alerts -->
+  <div id="alert-container" class="alert-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- In-page confirmation modal -->
+  <div id="confirm-overlay" class="confirm-overlay" aria-hidden="true">
+    <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="confirm-icon">!</div>
+      <h2 class="confirm-title" id="confirm-title">Are you sure?</h2>
+      <p class="confirm-message" id="confirm-message">Please confirm if you want to proceed.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn confirm-cancel" id="confirm-cancel">Cancel</button>
+        <button type="button" class="btn confirm-ok" id="confirm-ok">Confirm</button>
+      </div>
+    </div>
   </div>
 
   <!-- Custom date picker (liquid glass + accent) -->

@@ -112,6 +112,8 @@
   // --- CV UI ---
   const cvForm = document.getElementById("cv-form");
   const cvFileInput = document.getElementById("cv-file");
+  const cvFileTrigger = document.getElementById("cv-file-trigger");
+  const cvFileLabel = document.getElementById("cv-file-label");
   const cvFilenameInput = document.getElementById("cv-filename");
   const cvRemoveBtn = document.getElementById("cv-remove");
   const cvStatus = document.getElementById("cv-status");
@@ -135,13 +137,30 @@
     const cv = getCv();
     if (cv && cv.filename) {
       setCvStatus("Current CV: " + cv.filename + " (uploaded). Visitors can download it from the portfolio menu.");
+      if (cvFileLabel) cvFileLabel.textContent = cv.filename;
     } else {
       setCvStatus("No CV uploaded. Add a PDF above, or place cv.pdf in your site folder for a fallback.");
+      if (cvFileLabel) cvFileLabel.textContent = "No file selected";
     }
   }
 
-  cvForm.addEventListener("submit", function (e) {
+  if (cvFileTrigger && cvFileInput) {
+    cvFileTrigger.addEventListener("click", function () {
+      cvFileInput.click();
+    });
+  }
+
+  if (cvFileInput && cvFileLabel) {
+    cvFileInput.addEventListener("change", function () {
+      const file = cvFileInput.files && cvFileInput.files[0];
+      cvFileLabel.textContent = file ? file.name : "No file selected";
+    });
+  }
+
+  cvForm.addEventListener("submit", async function (e) {
     e.preventDefault();
+    const ok = await openConfirm("Upload or replace the current CV?");
+    if (!ok) return;
     const file = cvFileInput.files && cvFileInput.files[0];
     if (!file) {
       setCvStatus("Please choose a PDF file.", true);
@@ -167,6 +186,7 @@
         updateCvStatus();
         cvFileInput.value = "";
         cvFilenameInput.value = "";
+        showAlert("success", "CV uploaded successfully.");
       } catch (err) {
         setCvStatus("Upload failed. Try a smaller PDF.", true);
       }
@@ -174,14 +194,15 @@
     reader.readAsDataURL(file);
   });
 
-  cvRemoveBtn.addEventListener("click", function () {
-    if (confirm("Remove the uploaded CV? Visitors will see the fallback (cv.pdf) if you have one.")) {
-      localStorage.removeItem(STORAGE_CV);
-      syncToSupabase({ cv: null });
-      updateCvStatus();
-      cvFileInput.value = "";
-      cvFilenameInput.value = "";
-    }
+  cvRemoveBtn.addEventListener("click", async function () {
+    const ok = await openConfirm("Remove the uploaded CV? Visitors will see the fallback (cv.pdf) if you have one.");
+    if (!ok) return;
+    localStorage.removeItem(STORAGE_CV);
+    syncToSupabase({ cv: null });
+    updateCvStatus();
+    cvFileInput.value = "";
+    cvFilenameInput.value = "";
+    showAlert("success", "CV removed.");
   });
 
   // Initial CV status is updated after Supabase sync (see init at bottom).
@@ -258,14 +279,17 @@
   }
 
   if (aboutForm) {
-    aboutForm.addEventListener("submit", function (e) {
+    aboutForm.addEventListener("submit", async function (e) {
       e.preventDefault();
+      const ok = await openConfirm("Save changes to the About section?");
+      if (!ok) return;
       const meta = {
         role: (aboutRoleInput && aboutRoleInput.value.trim()) || "",
         experienceYears: (aboutExpInput && aboutExpInput.value.trim()) || "",
         focus: (aboutFocusInput && aboutFocusInput.value.trim()) || ""
       };
       saveAboutMeta(meta, skillsMasterCache);
+      showAlert("success", "About section saved.");
     });
   }
 
@@ -347,8 +371,8 @@
               ${item.description ? `<p>${escapeHtml(stripHtml(item.description))}</p>` : ""}
             </div>
             <div class="actions">
-              <button type="button" class="btn btn-small btn-ghost edit-exp">Edit</button>
-              <button type="button" class="btn btn-small btn-danger delete-exp">Delete</button>
+              <button type="button" class="btn btn-icon-3d btn-icon-3d-neutral edit-exp" aria-label="Edit experience"><span class="icon-glyph">✎</span></button>
+              <button type="button" class="btn btn-icon-3d btn-icon-3d-danger delete-exp" aria-label="Delete experience"><span class="icon-glyph"><i class="fa-regular fa-trash-can"></i></span></button>
             </div>
           </li>`
       )
@@ -381,19 +405,20 @@
     });
 
     experienceListEl.querySelectorAll(".delete-exp").forEach((btn) => {
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", async function () {
         const li = this.closest("li");
-        if (confirm("Delete this experience entry?")) {
-          const next = getExperience().filter((i) => i.id !== li.dataset.id);
-          saveExperience(next);
-          renderExperienceList();
-          if (experienceId.value === li.dataset.id) {
-            experienceForm.reset();
-            setDescHtml(quillExp, "");
-            experienceId.value = "";
-            experienceCancel.style.display = "none";
-          }
+        const ok = await openConfirm("Delete this experience entry?");
+        if (!ok) return;
+        const next = getExperience().filter((i) => i.id !== li.dataset.id);
+        saveExperience(next);
+        renderExperienceList();
+        if (experienceId.value === li.dataset.id) {
+          experienceForm.reset();
+          setDescHtml(quillExp, "");
+          experienceId.value = "";
+          experienceCancel.style.display = "none";
         }
+        showAlert("success", "Experience deleted.");
       });
     });
   }
@@ -430,8 +455,10 @@
     return startStr + " — " + formatMonthYear(end);
   }
 
-  experienceForm.addEventListener("submit", function (e) {
+  experienceForm.addEventListener("submit", async function (e) {
     e.preventDefault();
+    const ok = await openConfirm("Save changes to this experience entry?");
+    if (!ok) return;
     const list = getExperience();
     const periodStr = buildPeriodFromDates();
     const payload = {
@@ -449,6 +476,7 @@
     if (idx >= 0) list[idx] = payload;
     else list.push(payload);
     saveExperience(list);
+    showAlert("success", "Experience saved.");
     experienceForm.reset();
     setDescHtml(quillExp, "");
     expPresent.checked = false;
@@ -577,8 +605,8 @@
               ${item.description ? `<p>${escapeHtml(stripHtml(item.description))}</p>` : ""}
             </div>
             <div class="actions">
-              <button type="button" class="btn btn-small btn-ghost edit-proj">Edit</button>
-              <button type="button" class="btn btn-small btn-danger delete-proj">Delete</button>
+              <button type="button" class="btn btn-icon-3d btn-icon-3d-neutral edit-proj" aria-label="Edit project"><span class="icon-glyph">✎</span></button>
+              <button type="button" class="btn btn-icon-3d btn-icon-3d-danger delete-proj" aria-label="Delete project"><span class="icon-glyph"><i class="fa-regular fa-trash-can"></i></span></button>
             </div>
           </li>`
       )
@@ -605,26 +633,29 @@
     });
 
     projectsListEl.querySelectorAll(".delete-proj").forEach((btn) => {
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", async function () {
         const li = this.closest("li");
-        if (confirm("Delete this project?")) {
-          const next = getProjects().filter((i) => i.id !== li.dataset.id);
-          saveProjects(next);
-          renderProjectsList();
-          if (projectId.value === li.dataset.id) {
-            projectForm.reset();
-            setDescHtml(quillProj, "");
-            setSelectedProjectTypes([]);
-            projectId.value = "";
-            projectCancel.style.display = "none";
-          }
+        const ok = await openConfirm("Delete this project?");
+        if (!ok) return;
+        const next = getProjects().filter((i) => i.id !== li.dataset.id);
+        saveProjects(next);
+        renderProjectsList();
+        if (projectId.value === li.dataset.id) {
+          projectForm.reset();
+          setDescHtml(quillProj, "");
+          setSelectedProjectTypes([]);
+          projectId.value = "";
+          projectCancel.style.display = "none";
         }
+        showAlert("success", "Project deleted.");
       });
     });
   }
 
-  projectForm.addEventListener("submit", function (e) {
+  projectForm.addEventListener("submit", async function (e) {
     e.preventDefault();
+    const ok = await openConfirm("Save changes to this project?");
+    if (!ok) return;
     const list = getProjects();
     const allSkills = getSelectedProjectSkills();
     const payload = {
@@ -645,6 +676,7 @@
     projectId.value = "";
     projectCancel.style.display = "none";
     renderProjectsList();
+    showAlert("success", "Project saved.");
   });
 
   projectCancel.addEventListener("click", function () {
@@ -694,8 +726,10 @@
   }
 
   if (contactForm) {
-    contactForm.addEventListener("submit", function (e) {
+    contactForm.addEventListener("submit", async function (e) {
       e.preventDefault();
+      const ok = await openConfirm("Save changes to the Contact section?");
+      if (!ok) return;
       saveContact({
         text: (contactTextInput && contactTextInput.value.trim()) || "",
         email: (contactEmailInput && contactEmailInput.value.trim()) || "",
@@ -703,6 +737,7 @@
         githubUrl: (contactGithubInput && contactGithubInput.value.trim()) || "",
         discordUrl: (contactDiscordInput && contactDiscordInput.value.trim()) || "",
       });
+      showAlert("success", "Contact settings saved.");
     });
   }
 
@@ -717,6 +752,77 @@
     const div = document.createElement("div");
     div.innerHTML = html;
     return div.textContent || "";
+  }
+
+  // --- Inline status alerts ---
+  const alertContainer = document.getElementById("alert-container");
+
+  function showAlert(type, message) {
+    if (!alertContainer || !message) return;
+    const wrapper = document.createElement("div");
+    wrapper.className = "alert alert--" + type;
+    const iconChar = type === "success" ? "✓" : "!";
+    wrapper.innerHTML =
+      '<div class="alert-icon">' + iconChar + "</div>" +
+      '<div class="alert-content"><p class="alert-message">' + escapeHtml(message) + "</p></div>" +
+      '<button type="button" class="alert-close" aria-label="Dismiss">×</button>';
+
+    const closeBtn = wrapper.querySelector(".alert-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+      });
+    }
+
+    alertContainer.appendChild(wrapper);
+    setTimeout(function () {
+      if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+    }, 3200);
+  }
+
+  // --- In-page confirmation modal ---
+  const confirmOverlay = document.getElementById("confirm-overlay");
+  const confirmMessageEl = document.getElementById("confirm-message");
+  const confirmCancelBtn = document.getElementById("confirm-cancel");
+  const confirmOkBtn = document.getElementById("confirm-ok");
+  let confirmResolver = null;
+
+  function closeConfirm(result) {
+    if (!confirmOverlay || !confirmResolver) return;
+    confirmOverlay.classList.remove("open");
+    const resolve = confirmResolver;
+    confirmResolver = null;
+    resolve(result);
+  }
+
+  function openConfirm(message) {
+    if (!confirmOverlay || !confirmMessageEl) {
+      // Fallback to native confirm if modal markup is missing.
+      return Promise.resolve(window.confirm(message));
+    }
+    confirmMessageEl.textContent = message;
+    confirmOverlay.classList.add("open");
+    return new Promise((resolve) => {
+      confirmResolver = resolve;
+    });
+  }
+
+  if (confirmOverlay) {
+    confirmOverlay.addEventListener("click", function (e) {
+      if (e.target === confirmOverlay) {
+        closeConfirm(false);
+      }
+    });
+  }
+  if (confirmCancelBtn) {
+    confirmCancelBtn.addEventListener("click", function () {
+      closeConfirm(false);
+    });
+  }
+  if (confirmOkBtn) {
+    confirmOkBtn.addEventListener("click", function () {
+      closeConfirm(true);
+    });
   }
 
   // --- Custom date picker (liquid glass + accent) ---
@@ -885,6 +991,8 @@
     const logoutBtn = document.getElementById("admin-logout");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", async function () {
+        const ok = await openConfirm("Log out of the admin panel?");
+        if (!ok) return;
         try {
           if (supabaseClient) {
             await supabaseClient.auth.signOut();
