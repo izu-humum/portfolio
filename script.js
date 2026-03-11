@@ -401,7 +401,9 @@
 
   var loaderOverlay = document.getElementById("loader-overlay");
   if (loaderOverlay) {
-    window.addEventListener("loader-complete", typeHeroName, { once: true });
+    window.addEventListener("loader-complete", function () {
+      setTimeout(typeHeroName, 1000);
+    }, { once: true });
   } else {
     typeHeroName();
   }
